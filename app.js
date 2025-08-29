@@ -18,7 +18,23 @@ $.ajaxSetup({
 });
 
 
-function api_login(){
+function getCookie(name) {
+  let cookie = document.cookie.split('; ').find(row => row.startsWith(name + '='));
+  return cookie ? cookie.split('=')[1] : null;
+}
+
+
+function deleteAllCookies() {
+    document.cookie.split(';').forEach(cookie => {
+        const eqPos = cookie.indexOf('=');
+        const name = eqPos > -1 ? cookie.substring(0, eqPos) : cookie;
+        document.cookie = name + '=;expires=Thu, 01 Jan 1970 00:00:00 GMT';
+    });
+}
+
+
+
+function send_login(){
     $.ajax({
         url: server + '/login_device',
         xhrFields: { withCredentials: true } ,
@@ -26,14 +42,18 @@ function api_login(){
         async: false,
         dataType: 'json',
         contentType:'application/json',
-        data: JSON.stringify({"key":api_key, "password": "1234", "user_name":"Ares.Ares.Ars@yandex.ru"}),
+        data: JSON.stringify({"password": document.getElementById("user_password_input").value, "user_name":document.getElementById("user_name_input").value}),
         success: function(json){
                 globalThis.id_user = json["id_user"];
                 document.cookie = "id_user=" + json["id_user"];
                 document.cookie = "name=" + json["name"];
+                document.cookie = "api_key=" + json["api_key"];
                 globalThis.api_key = json["api_key"];
                 document.getElementById("name_user").textContent = json["name"];
                 document.getElementById("user_username").textContent = json['username']
+                get_chats('email');
+                document.getElementById("global_menu_d").style.display = "none";
+                document.getElementById("id_user").value = json["id_user"];
             },
         error: function(err) {
             console.error(err);
@@ -42,7 +62,99 @@ function api_login(){
 }
 
 
+function api_login(){
+    var api_key2 = getCookie("api_key");
+    if (api_key2){
+        globalThis.api_key = api_key2;
+        document.getElementById("name_user").textContent = getCookie("name");
+        document.getElementById("user_username").textContent = getCookie('username');
+        globalThis.id_user = getCookie("id_user");
+        document.getElementById("id_user").value = id_user;
+    }else{
+        document.getElementById("global_menu_d").style.display = "block";
+        var menu = document.getElementById("global_menu");
+        const user_name_input = document.createElement("input");
+        const user_password_input = document.createElement("input");
+        const h_pass = document.createElement("h2");
+        h_pass.textContent = "Пароль";
+        const h_name = document.createElement("h2");
+        h_name.textContent = "Username";
+        user_password_input.id = "user_password_input";
+        user_password_input.type = "password";
+        user_name_input.id = "user_name_input";
+        menu.appendChild(h_name);
+        menu.appendChild(user_name_input);
+        menu.appendChild(h_pass);
+        menu.appendChild(user_password_input);
+        var btn_send_login = document.createElement("button");
+        btn_send_login.id = "btn_send_login";
+        btn_send_login.setAttribute("onclick", "send_login()");
+        btn_send_login.textContent = "авторизоваться";
+        btn_send_login.classList = "btn btn-primary";
+        menu.appendChild(document.createElement('br'));
+        menu.appendChild(btn_send_login);
+        var btn_register = document.createElement("button");
+        btn_register.setAttribute("onclick", "ui_register()");
+        btn_register.textContent = "зарегистрироваться";
+        btn_register.classList = "btn btn-primary";
+        menu.appendChild(btn_register);
+    }
+}
+
+
 api_login()
+
+function logout(){
+    deleteAllCookies();
+    globalThis.api_key = '';
+    globalThis.id_user = "";
+    document.getElementById("name_user").textContent = "";
+    document.getElementById("user_username").textContent = "";
+    document.getElementById("id_user").value = "";
+    document.getElementById("global_menu").innerHTML = "";
+    exit_chat()
+    alert(document.cookie);
+    api_login();
+}
+
+
+function send_register(){
+    $.ajax({
+        url: server + '/api/register_device',
+        type: 'POST',
+        dataType: 'json',
+        contentType:'application/json',
+        data: JSON.stringify({"password": document.getElementById("user_password_input").value,"user_name":document.getElementById("user_name_input").value,"password2": document.getElementById("pass2_input").value,"name": document.getElementById("new_name_user").value}),
+        success: function(json){
+            if (json["log"]){
+                globalThis.id_user = json["id_user"];
+                document.cookie = "id_user=" + json["id_user"];
+                document.cookie = "name=" + json["name"];
+                document.cookie = "api_key=" + json["api_key"];
+                globalThis.api_key = json["api_key"];
+                document.getElementById("name_user").textContent = json["name"];
+                document.getElementById("user_username").textContent = json['username'];
+                get_chats('email');
+                document.getElementById("global_menu_d").style.display = "none";
+                document.getElementById("id_user").value = json["id_user"];
+                } else {
+                    var menu = document.getElementById("global_menu");
+                    var error_div = document.createElement("div");
+                    if (json["message"] == "p!2"){
+                        error_div.textContent = "Пароли не совпадают!";
+                    } else {
+                        error_div.textContent = "Такое username уже существует!"
+                    }
+                    menu.appendChild(error_div);
+                };
+        },
+        error: function(err) {
+            console.error(err);
+        }
+    });
+}
+
+
 
 if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|BB|PlayBook|IEMobile|Windows Phone|Kindle|Silk|Opera Mini/i .test(navigator.userAgent)){
     var x = document.getElementById("background-img");
@@ -132,7 +244,7 @@ function sing_out_of_chat(){
 function set_recipient(id_chat, is_primary, name, status) {
     var st_chat = document.getElementById("chat_id").value
     if (st_chat){
-        socket.emit('leave', {room: st_chat});
+        socket.emit('leave', {room: st_chat, id_user: id_user});
     }
     try{
         document.getElementById("chat"+ id_chat).style.background =  "#6699cc";
@@ -187,7 +299,7 @@ function set_recipient(id_chat, is_primary, name, status) {
 
 function exit_chat(){
     var st_chat = document.getElementById("chat_id").value;
-    socket.emit('leave', {room: st_chat});
+    socket.emit('leave', {room: st_chat, id_user: id_user});
     if (st_chat){
         document.getElementById("chat"+ st_chat).style.background =  "white";
     };
@@ -720,6 +832,7 @@ function send_of(chat_id, id_m, name_chat){
 
 
 function get_chats (id_div){
+if (id_user != ""){
     $.ajax({
         url: server + '/api/get_chats/' + id_user + "/" + api_key,
         type: 'GET',
@@ -772,6 +885,7 @@ function get_chats (id_div){
             console.error(err);
         }
 });
+    }
 }
 
 
@@ -1036,7 +1150,7 @@ function set_read(chat_id){
         type: 'POST',
         dataType: 'json',
         contentType:'application/json',
-        data: JSON.stringify({"chat_id":chat_id, "id_user": id_user}),
+        data: JSON.stringify({"chat_id":chat_id, "id_user": id_user, "api_key": api_key}),
         success: function(json){
 
             },
@@ -1123,19 +1237,18 @@ socket.on('leave_event', (data) => {
 
 socket.on('edit_mess', (data) => {
    document.getElementById("text" + data["id_mess"]).textContent = data["new_text"];
-   console.log("edit soc")
 });
 
 socket.on('connect', () => {
     chat_id = document.getElementById("chat_id");
     if (chat_id.value != ""){
-        socket.emit('join', {room: chat_id.value});
+        socket.emit('join', {room: chat_id.value, id_user: id_user});
     }
 });
 
 
 socket.on('disconnect', () => {
-    alert("disconnect");
+
 });
 
 
@@ -1150,3 +1263,4 @@ document.addEventListener('DOMContentLoaded', () => {
    }
    })
 });
+

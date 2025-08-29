@@ -11,6 +11,50 @@ function showDiv(Div, div2) {
 }
 
 
+function ui_register(){
+    var menu = document.getElementById("global_menu");
+    menu.innerHTML = ""
+    const user_name_input = document.createElement("input");
+        const user_password_input = document.createElement("input");
+        const h_pass = document.createElement("h2");
+        h_pass.textContent = "Пароль";
+        const h_name = document.createElement("h2");
+        h_name.textContent = "Username";
+        const h_password2 = document.createElement("h2");
+        h_password2.textContent = "Повторите пароль";
+        user_password_input.id = "user_password_input";
+        user_password_input.type = "password";
+        user_name_input.id = "user_name_input";
+        menu.appendChild(h_name);
+        menu.appendChild(user_name_input);
+        menu.appendChild(h_pass);
+        menu.appendChild(user_password_input);
+        menu.appendChild(h_password2);
+        const pass2_input = document.createElement("input");
+        pass2_input.id = "pass2_input";
+        pass2_input.type = "password";
+        menu.appendChild(pass2_input);
+        var h_name_user = document.createElement("h2");
+        h_name_user.textContent = "имя пользователя";
+        menu.appendChild(h_name_user);
+        var name_user = document.createElement("input");
+        name_user.id = "new_name_user";
+        menu.appendChild(name_user);
+        var btn_send_login = document.createElement("button");
+        btn_send_login.id = "btn_send_login";
+        btn_send_login.setAttribute("onclick", "send_login()");
+        btn_send_login.textContent = "авторизоваться";
+        btn_send_login.classList = "btn btn-primary";
+        menu.appendChild(document.createElement('br'));
+        menu.appendChild(btn_send_login);
+        var btn_register = document.createElement("button");
+        btn_register.setAttribute("onclick", "send_register()");
+        btn_register.textContent = "зарегистрироваться";
+        btn_register.classList = "btn btn-primary";
+        menu.appendChild(btn_register);
+}
+
+
 function add_border(div1, div2, btn1, btn2){
     var x = document.getElementById(div1);
     var y = document.getElementById(div2);
